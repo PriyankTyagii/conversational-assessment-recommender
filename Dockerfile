@@ -4,6 +4,13 @@ FROM python:3.11-slim
 WORKDIR /app
 
 COPY requirements.txt .
+# Install the CPU-only torch build first — the default PyPI resolution for
+# sentence-transformers' torch dependency pulls the full CUDA build (nvidia-*
+# packages, triton, cuda-toolkit), which is gigabytes larger and pushes
+# runtime memory past free-tier limits (e.g. Render's 512MB) even though no
+# GPU is ever used here. Installing CPU-only torch first satisfies the
+# dependency without pip reaching for the CUDA variant.
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Bake the embedding model into the image so a fresh deploy doesn't need to
