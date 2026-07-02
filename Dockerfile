@@ -19,9 +19,10 @@ RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTr
 
 COPY app ./app
 
-EXPOSE 8000
+EXPOSE 7860
 
 # Railway/Render inject PORT at runtime and expect the app to bind to it;
-# fall back to 8000 for local `docker run`. Shell form is required so $PORT
-# actually expands (exec-form CMD would pass it through literally).
-CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
+# Hugging Face Spaces requires listening on 7860 and doesn't set PORT, so
+# that's the fallback for local `docker run` too. Shell form is required so
+# $PORT actually expands (exec-form CMD would pass it through literally).
+CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-7860}
