@@ -65,10 +65,11 @@ LLM call, so it can't be talked around by injected instructions.
 
 ## Evaluation
 
-- **Automated tests (11, all passing):** schema compliance on every response
+- **Automated tests (12, all passing):** schema compliance on every response
   type, empty/malformed history, catalog-only URL grounding, off-topic and
   prompt-injection refusal, refinement not resetting the shortlist, comparison
-  answers grounded in named catalog products, and 8-turn cap enforcement.
+  answers grounded in named catalog products, 8-turn cap enforcement, and a
+  regression test for the SQL/Java false-positive described below.
 - **10 provided sample-conversation traces**, parsed from SHL's markdown format
   into turns with expected final-shortlist URLs. A regression runner
   (`scripts/run_traces.py`) replays the real user utterances turn-by-turn against
@@ -88,6 +89,7 @@ LLM call, so it can't be talked around by injected instructions.
 | Compare-detection false-positives: product names like "ADO.NET" or "Data Entry ... - US" generated 2-letter acronyms/codes ("AN", "US") that matched ordinary words in unrelated sentences ("for **an** inbound call center, ... **US** based"), routing normal recommendation requests into the compare path. | Excluded common geo/language codes (US, UK, etc.) from code-token matching and raised the minimum acronym length to 3. |
 | Dense retrieval systematically under-ranks SHL's generic flagship instruments — OPQ32r and SHL Verify Interactive G+ — which the gold traces add by convention for most roles. Their descriptions are behaviorally generic, so they don't embed close to domain-specific JD text (observed rank ~80–220 out of 377 for typical queries). Raising top-k and enriching embedding text with category/job-level tags helped modestly but didn't resolve it. | Documented as an open limitation rather than hard-coding specific product names into the retrieval logic, which would be overfitting to the 10 sample traces rather than a generalizable fix. A production version would want a hybrid signal (e.g. a learned re-ranker or popularity prior) on top of pure embedding similarity. |
 | Groq's free tier has a 100K-token daily cap, which iterative development exhausted mid-session; free OpenRouter models are an available fallback but have variable, occasionally slow (~25s) shared-tier latency. | Built a provider-agnostic `generate()` with Groq primary and Gemini/OpenRouter fallback (one-line config swap), and lowered the internal LLM timeout to 18s to leave headroom under the 30s cap regardless of provider. For actual deployment, Groq is preferred for its low, consistent latency. |
+| Compare-detection false-positive, round two, found during final verification: short catalog product names that are also common skill keywords ("SQL", "Java") caused ordinary recommend requests ("strong SQL and Java skills") to match 2+ "products" and misfire into compare mode with an empty shortlist. | Gated compare mode on explicit comparison language ("difference between", "compare", "versus", etc.) in addition to matching 2+ named products — matches how every compare example in the sample traces is actually phrased, and stops the false trigger without weakening real compare detection. |
 
 ## Stack
 
