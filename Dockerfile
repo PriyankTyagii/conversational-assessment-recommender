@@ -1,3 +1,4 @@
+
 FROM python:3.11-slim
 
 WORKDIR /app
@@ -13,4 +14,7 @@ COPY app ./app
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Railway/Render inject PORT at runtime and expect the app to bind to it;
+# fall back to 8000 for local `docker run`. Shell form is required so $PORT
+# actually expands (exec-form CMD would pass it through literally).
+CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}

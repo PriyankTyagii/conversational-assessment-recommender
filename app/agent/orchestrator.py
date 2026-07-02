@@ -27,6 +27,19 @@ _INJECTION_PATTERNS = [
     "act as",
 ]
 _ACRONYM_IGNORE_WORDS = {"new", "the", "of", "and", "for", "in", "on", "a", "an", "-"}
+_COMPARISON_PHRASES = [
+    "difference between", "different from", "compare", "comparison",
+    "versus", " vs ", " vs.", "vs\n", "how does", "compared to", "or which",
+]
+
+
+def _has_comparison_intent(text: str) -> bool:
+    """Gate compare-mode on explicit comparison language, not just mentioning
+    two product-shaped names — otherwise an ordinary recommend request like
+    "needs strong SQL and Java skills" false-triggers compare mode purely
+    because "SQL" and "Java" are also short catalog product names."""
+    text_lower = text.lower()
+    return any(phrase in text_lower for phrase in _COMPARISON_PHRASES)
 
 
 def _is_out_of_scope(latest_user_message: str) -> bool:
@@ -183,7 +196,11 @@ def handle_chat(request: ChatRequest) -> ChatResponse:
         return ChatResponse(reply=REFUSE_TEMPLATE, recommendations=[], end_of_conversation=False)
 
     catalog = load_catalog()
-    mentioned_entries = _find_mentioned_entries(latest_user_message, catalog)
+    mentioned_entries = (
+        _find_mentioned_entries(latest_user_message, catalog)
+        if _has_comparison_intent(latest_user_message)
+        else []
+    )
     if len(mentioned_entries) >= 2:
         # Comparisons are answered from catalog facts and never carry a
         # shortlist — the reply is a factual answer, not a new commitment.

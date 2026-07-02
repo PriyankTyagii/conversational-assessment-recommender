@@ -66,6 +66,24 @@ def test_compare_is_grounded_in_named_catalog_products():
     assert isinstance(body["reply"], str) and len(body["reply"]) > 0
 
 
+def test_skill_keywords_that_are_also_product_names_do_not_trigger_compare():
+    # "SQL" and "Java" are both common skill keywords AND short catalog
+    # product names — mentioning them together must still recommend, not
+    # misfire into compare mode just because two product-shaped names appear.
+    body = _chat(
+        [
+            {
+                "role": "user",
+                "content": (
+                    "Hiring a mid-level Java developer with strong SQL and "
+                    "stakeholder management skills."
+                ),
+            }
+        ]
+    )
+    assert len(body["recommendations"]) > 0
+
+
 def test_turn_cap_forces_closure():
     messages = []
     for i in range(8):
